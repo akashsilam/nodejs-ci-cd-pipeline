@@ -1,0 +1,73 @@
+name: CI/CD Pipeline for Node.js Application on AWS
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  # Job 1: Run tests
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+
+      - name: Install dependencies
+        run: npm install
+        
+      - name: Run tests
+        run: npm test
+
+  # Job 2: Build Docker image, push to ECR, and deploy to ECS
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        
+      - name: Set up AWS CLI
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      
+      - name: Login to ECR
+        run: |
+          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/nodejs-app:${{ github.sha }} .
+      
+      - name: Push Docker image to ECR
+        run: |
+          docker tag nodejs-app:${{ github.sha }} ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/nodejs-app:${{ github.sha }}
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/nodejs-app:${{ github.sha }}
+
+      - name: Deploy to ECS
+        run: |
+          ecs-cli configure --region ${{ secrets.AWS_REGION }} --cluster nodejs-cluster
+          ecs-cli compose --file docker-compose.yml service up
+
+  # Job 3: Send notifications for deployment success/failure
+  notifications:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify deployment success/failure
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "Deployment successful!" | mail -s "Deployment Success" your-email@example.com
+          else
+            echo "Deployment failed!" | mail -s "Deployment Failure" your-email@example.com
