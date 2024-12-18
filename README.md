@@ -1,49 +1,54 @@
-# CI/CD Pipeline for Node.js Application
+# CI/CD Pipeline for Node.js Application on AWS
 
 ## Overview
-This repository contains a Node.js application with a CI/CD pipeline using GitHub Actions. The pipeline automates the process of:
+This project demonstrates a Continuous Integration and Continuous Deployment (CI/CD) pipeline for a simple Node.js application, using **GitHub Actions** and **AWS services**. The pipeline automates the process of:
 
-1. Running tests on pull requests.
-2. Building a Docker image and pushing it to Docker Hub.
-3. Deploying the image to a Kubernetes cluster.
-4. Sending notifications on deployment success or failure.
+1. Running tests automatically on every pull request to the `main` branch.
+2. Building a Docker image and pushing it to **AWS Elastic Container Registry (ECR)**.
+3. Deploying the Docker image to **AWS Elastic Container Service (ECS)**.
+4. Sending notifications about the deployment success or failure.
 
 ## Approach
 
 ### 1. **Test Automation**
-The pipeline runs tests on every pull request to the `main` branch. The tests are executed using the command `npm test`. This ensures that only code that passes tests is merged.
+- The pipeline runs automated tests every time a pull request is created or updated for the `main` branch.
+- We are using **Jest** for running tests. The tests are executed with the `npm test` command.
 
 ### 2. **Docker Image Build and Deployment**
-The pipeline builds a Docker image using a `Dockerfile` in the repository. It then pushes the built image to Docker Hub. The Kubernetes deployment is updated with the newly pushed Docker image.
-
-Steps in the pipeline:
-- Build Docker image: `docker build -t <username>/nodejs-app:<commit_hash> .`
-- Push Docker image: `docker push <username>/nodejs-app:<commit_hash>`
-- Deploy the new image to Kubernetes using `kubectl`:
-  - `kubectl set image deployment/nodejs-deployment nodejs-app=<username>/nodejs-app:<commit_hash>`
-  - `kubectl rollout status deployment/nodejs-deployment`
+- **Docker** is used to containerize the Node.js application.
+- The pipeline builds a Docker image for the Node.js app and pushes it to **AWS Elastic Container Registry (ECR)**.
+- The image is then deployed to **AWS Elastic Container Service (ECS)** for serving the application.
 
 ### 3. **Notifications**
-Notifications are sent to an email address to inform about the success or failure of the deployment. This is done using the `mail` command or can be extended to integrate with other services like Slack, Teams, or email APIs.
+- After each deployment, the pipeline sends notifications based on the deployment result (success or failure). You can modify the notification method to suit your needs (e.g., using email or Slack).
 
 ## Files in the Repository
-- `.github/workflows/ci-cd-pipeline.yml`: GitHub Actions workflow file.
-- `Dockerfile`: Docker configuration for building the Node.js app image.
-- `app.js`: The Node.js application (you can add your actual application code here).
-- `k8s/deployment.yaml`: Kubernetes deployment configuration (if applicable).
-- `README.md`: Documentation explaining the project setup.
-
-## How to Use
-1. Fork the repository or clone it to your local machine.
-2. Make changes to the code or workflow as needed.
-3. Submit a pull request for review.
-4. The pipeline will automatically run tests on pull requests and deploy the changes on successful merges to `main`.
+- **`.github/workflows/ci-cd-pipeline.yml`**: GitHub Actions workflow configuration that automates the CI/CD pipeline.
+- **`Dockerfile`**: Docker configuration to build the image for the Node.js app.
+- **`app.js`**: The main Node.js application code.
+- **`test/app.test.js`**: Unit tests for the Node.js application using **Jest**.
+- **`docker-compose.yml`**: Optional file used with ECS for deployment.
+- **`README.md`**: Documentation explaining how to use the repository.
 
 ## Prerequisites
-- Docker account with credentials stored in GitHub Secrets (`DOCKER_USERNAME`, `DOCKER_PASSWORD`).
-- Kubernetes cluster and `kubectl` configuration stored in GitHub Secrets (`KUBECONFIG`).
-- GitHub Actions enabled for the repository.
+Before you can run this pipeline, you'll need to:
 
-## Conclusion
-This CI/CD pipeline automates the process of testing, building, and deploying a Node.js application, ensuring that changes are properly tested and deployed with minimal manual intervention.
+1. Set up an **AWS Elastic Container Registry (ECR)** repository to store the Docker images.
+2. Set up an **AWS Elastic Container Service (ECS)** cluster to deploy the application.
+3. Create IAM roles and AWS credentials (stored in GitHub secrets) to allow the pipeline to interact with AWS services.
 
+## How to Use
+1. Fork or clone this repository to your local machine.
+2. Make your changes to the Node.js application code or Docker configuration.
+3. Commit and push your changes to GitHub.
+4. The **GitHub Actions** pipeline will automatically trigger the tests, build the Docker image, push it to ECR, and deploy it to ECS.
+5. You will receive a notification about the deployment status.
+
+## How to Run Locally
+To run the application locally, follow these steps:
+
+1. **Clone the repository**:
+
+   ```bash
+   git clone https://github.com/<your-username>/nodejs-ci-cd-pipeline.git
+   cd nodejs-ci-cd-pipeline
