@@ -1,0 +1,6 @@
+version: '3'
+services:
+  nodejs-app:
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/nodejs-app:latest
+    ports:
+      - "80:3000"
